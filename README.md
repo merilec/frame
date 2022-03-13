@@ -14,7 +14,7 @@ Frame is yet another map editor for Pokémon GBA games.
 
 ## Download
 
-Downloads can be found in [Releases](releases).
+Downloads can be found in [Releases](https://github.com/merilec/frame/releases).
 
 ## Build from source
 
