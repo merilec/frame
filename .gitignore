@@ -1,0 +1,13 @@
+/target
+.dart_tool
+.cache
+.DS_Store
+.packages
+build
+.flutter-plugins
+.flutter-plugins-dependencies
+.vscode
+
+*.gba
+*.sa*
+*.ss[0-9]
