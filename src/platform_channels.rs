@@ -8,16 +8,17 @@ use nativeshell::{
     shell::{Context, EngineHandle, MethodCallHandler, MethodChannel},
 };
 use pleat::{
+    encounter::{EncounterEntry, EncounterType},
+    error::Error as RomError,
     mapping::MapBlock,
-    rom::{Rom, RomError},
-    LzError,
+    rom::Rom,
 };
 use serde_json::error::Error as SerdeJsonError;
 
 use crate::map_info::MapInfo;
 
 #[derive(Debug)]
-struct NoRomLoadedError {}
+pub struct NoRomLoadedError {}
 impl std::error::Error for NoRomLoadedError {}
 impl fmt::Display for NoRomLoadedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -26,11 +27,24 @@ impl fmt::Display for NoRomLoadedError {
 }
 
 #[derive(Debug)]
-enum Error {
+pub struct InvalidEncounterTypeError {
+    value: usize,
+}
+impl std::error::Error for InvalidEncounterTypeError {}
+impl fmt::Display for InvalidEncounterTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Invalid encounter type ({})!", self.value)
+    }
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug)]
+pub enum Error {
     NoRomLoadedError(NoRomLoadedError),
+    InvalidEncounterTypeError(InvalidEncounterTypeError),
     IoError(IoError),
     RomError(RomError),
-    LzError(LzError),
     SerdeJsonError(SerdeJsonError),
     ValueError(ValueError),
 }
@@ -39,9 +53,9 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::NoRomLoadedError(err) => err.fmt(f),
+            Error::InvalidEncounterTypeError(err) => err.fmt(f),
             Error::IoError(err) => err.fmt(f),
             Error::RomError(err) => err.fmt(f),
-            Error::LzError(err) => err.fmt(f),
             Error::SerdeJsonError(err) => err.fmt(f),
             Error::ValueError(err) => err.fmt(f),
         }
@@ -52,6 +66,11 @@ impl From<NoRomLoadedError> for Error {
         Error::NoRomLoadedError(err)
     }
 }
+impl From<InvalidEncounterTypeError> for Error {
+    fn from(err: InvalidEncounterTypeError) -> Error {
+        Error::InvalidEncounterTypeError(err)
+    }
+}
 impl From<IoError> for Error {
     fn from(err: IoError) -> Error {
         Error::IoError(err)
@@ -60,11 +79,6 @@ impl From<IoError> for Error {
 impl From<RomError> for Error {
     fn from(err: RomError) -> Error {
         Error::RomError(err)
-    }
-}
-impl From<LzError> for Error {
-    fn from(err: LzError) -> Error {
-        Error::LzError(err)
     }
 }
 impl From<SerdeJsonError> for Error {
@@ -92,9 +106,9 @@ impl PlatformChannels {
         MethodChannel::new(self.context.clone(), "platform_channel", self)
     }
 
-    fn get_rom(&mut self) -> Result<&mut Rom, NoRomLoadedError> {
+    fn get_rom(&mut self) -> Result<&mut Rom> {
         match self.rom.as_mut() {
-            None => Err(NoRomLoadedError {}),
+            None => Err(NoRomLoadedError {})?,
             Some(rom) => Ok(rom),
         }
     }
@@ -102,18 +116,17 @@ impl PlatformChannels {
     fn get_rom_bank_map(
         &mut self,
         args: &Value,
-    ) -> Result<(&mut Rom, usize, usize), NoRomLoadedError> {
+    ) -> Result<(&mut Rom, usize, usize)> {
         let args = from_value::<Vec<i64>>(args).unwrap();
         Ok((self.get_rom()?, args[0] as usize, args[1] as usize))
     }
 
-    fn reply_value_or_error<T, E>(
+    fn reply_value_or_error<T>(
         &self,
         reply: MethodCallReply<Value>,
-        result: Result<T, E>,
+        result: Result<T>,
     ) where
         T: serde::Serialize,
-        E: std::error::Error,
     {
         match result {
             Err(e) => {
@@ -134,13 +147,11 @@ impl PlatformChannels {
         }
     }
 
-    fn reply_true_or_error<E>(
+    fn reply_true_or_error(
         &self,
         reply: MethodCallReply<Value>,
-        result: Result<(), E>,
-    ) where
-        E: std::error::Error,
-    {
+        result: Result<()>,
+    ) {
         match result {
             Err(e) => {
                 reply.send_error("error", Some(&e.to_string()), Value::Null);
@@ -151,27 +162,27 @@ impl PlatformChannels {
         }
     }
 
-    fn load_rom(&mut self, args: &Value) -> Result<Vec<Vec<String>>, Error> {
+    fn load_rom(&mut self, args: &Value) -> Result<Vec<Vec<String>>> {
         let filepath = from_value::<String>(args).unwrap();
         self.rom = Some(Rom::new(std::fs::read(&filepath)?));
         let rom = self.rom.as_mut().unwrap();
         Ok(rom.get_map_banks_names()?)
     }
 
-    fn save_rom(&mut self, args: &Value) -> Result<(), Error> {
+    fn save_rom(&mut self, args: &Value) -> Result<()> {
         let filepath = from_value::<String>(args).unwrap();
         let rom = self.get_rom()?;
         std::fs::write(&filepath, rom.get_data())?;
         Ok(())
     }
 
-    fn get_map_info(&mut self, args: &Value) -> Result<String, Error> {
+    fn get_map_info(&mut self, args: &Value) -> Result<String> {
         let (rom, bank_num, map_num) = self.get_rom_bank_map(args)?;
         let map_info = MapInfo::new(bank_num, map_num, rom)?;
         Ok(serde_json::to_string(&map_info)?)
     }
 
-    fn get_map_blocksheet(&mut self, args: &Value) -> Result<String, Error> {
+    fn get_map_blocksheet(&mut self, args: &Value) -> Result<String> {
         let (rom, bank_num, map_num) = self.get_rom_bank_map(args)?;
         Ok(rom
             .get_map_header(bank_num, map_num)?
@@ -179,7 +190,7 @@ impl PlatformChannels {
             .get_blocksheet_as_png(rom)?)
     }
 
-    fn set_map_blocks(&mut self, args: &Value) -> Result<(), Error> {
+    fn set_map_blocks(&mut self, args: &Value) -> Result<()> {
         let args = from_value::<Vec<String>>(args).unwrap();
         let bank_num = args[0].parse::<usize>().unwrap();
         let map_num = args[1].parse::<usize>().unwrap();
@@ -198,6 +209,50 @@ impl PlatformChannels {
         }
         Ok(())
     }
+
+    fn set_wild_encounters(&mut self, args: &Value) -> Result<()> {
+        let args = from_value::<Vec<String>>(args).unwrap();
+        let bank_num = args[0].parse::<usize>().unwrap();
+        let map_num = args[1].parse::<usize>().unwrap();
+        let value = args[2].parse::<usize>().unwrap();
+        let encounter_type = match value {
+            0 => EncounterType::None,
+            1 => EncounterType::Grass,
+            2 => EncounterType::Surf,
+            3 => EncounterType::RockSmash,
+            4 => EncounterType::OldRod,
+            5 => EncounterType::GoodRod,
+            6 => EncounterType::SuperRod,
+            _ => {
+                return Err(InvalidEncounterTypeError { value })?;
+            }
+        };
+        if matches!(encounter_type, EncounterType::None) {
+            return Ok(());
+        }
+        let entry_num = args[3].parse::<usize>().unwrap();
+        let entry: EncounterEntry = serde_json::from_str(&args[4]).unwrap();
+
+        let rom = self.get_rom()?;
+        match rom
+            .get_map_header(bank_num, map_num)?
+            .get_encounter_tables(rom)?
+        {
+            None => Ok(()),
+            Some(tables) => {
+                match tables.get_encounter_table(rom, encounter_type)? {
+                    None => Ok(()),
+                    Some(table) => {
+                        entry.write(
+                            table.entries_address + entry_num * 4,
+                            rom,
+                        )?;
+                        Ok(())
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl MethodCallHandler for PlatformChannels {
@@ -210,7 +265,7 @@ impl MethodCallHandler for PlatformChannels {
         match call.method.as_str() {
             "load_rom" => {
                 let result = self.load_rom(&call.args);
-                self.reply_value_or_error(reply, result)
+                self.reply_value_or_error(reply, result);
             }
             "save_rom" => {
                 let result = self.save_rom(&call.args);
@@ -226,6 +281,10 @@ impl MethodCallHandler for PlatformChannels {
             }
             "set_map_blocks" => {
                 let result = self.set_map_blocks(&call.args);
+                self.reply_true_or_error(reply, result);
+            }
+            "set_wild_encounters" => {
+                let result = self.set_wild_encounters(&call.args);
                 self.reply_true_or_error(reply, result);
             }
             _ => {}

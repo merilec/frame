@@ -1,3 +1,4 @@
+import 'package:frame/panels/encounters_panel.dart';
 import 'package:frame/panels/map_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:tabbed_view/tabbed_view.dart';
@@ -26,6 +27,19 @@ final _controller = TabbedViewController([
     buttons: [
       TabButton(
         icon: IconProvider.data(Icons.border_horizontal),
+        disabledColor: Colors.grey.shade800,
+        iconSize: 20,
+      )
+    ],
+  ),
+  TabData(
+    text: 'Wild Encounters ',
+    closable: false,
+    content: EncountersPanel(),
+    keepAlive: true,
+    buttons: [
+      TabButton(
+        icon: IconProvider.data(Icons.grass),
         disabledColor: Colors.grey.shade800,
         iconSize: 20,
       )

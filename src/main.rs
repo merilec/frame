@@ -5,6 +5,7 @@ use nativeshell::{
     },
 };
 use platform_channels::PlatformChannels;
+mod encounter_table;
 mod map_info;
 mod platform_channels;
 

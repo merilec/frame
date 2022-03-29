@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:frame/models/bank_map.dart';
+import 'package:frame/models/encounters.dart';
 import 'package:frame/models/map_block.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,11 +35,22 @@ class Api {
     return decodeImageFromList(base64Decode(imageString));
   }
 
-  static Future<void> setMapBlocks(BankMap bankMap, Map<int, MapBlock> mapBlocksToPaint) {
-    return _channel.invokeMethod('set_map_blocks', [
+  static Future<bool> setMapBlocks(BankMap bankMap, Map<int, MapBlock> mapBlocksToPaint) async {
+    return (await _channel.invokeMethod<bool>('set_map_blocks', [
       bankMap.bankNum.toString(),
       bankMap.mapNum.toString(),
       jsonEncode(mapBlocksToPaint.map((key, value) => MapEntry(key.toString(), value)))
-    ]);
+    ]))!;
+  }
+
+  static Future<bool> setWildEncounters(
+      BankMap bankMap, int encounterType, int entryNum, EncounterEntry entry) async {
+    return (await _channel.invokeMethod<bool>('set_wild_encounters', [
+      bankMap.bankNum.toString(),
+      bankMap.mapNum.toString(),
+      (encounterType + 1).toString(),
+      entryNum.toString(),
+      jsonEncode(entry)
+    ]))!;
   }
 }
