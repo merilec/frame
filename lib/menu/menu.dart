@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:frame/constants.dart';
 import 'package:frame/notifiers/editor.dart';
+import 'package:frame/notifiers/is_shortcut_enabled.dart';
 import 'package:frame/painters/map_painter.dart';
 import 'package:frame/tools/eyedropper.dart';
 import 'package:frame/tools/pencil.dart';
@@ -46,12 +47,14 @@ class MyMenuBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var editor = Provider.of<Editor>(context, listen: false);
+    var isShortcutEnabled = Provider.of<IsShortcutEnabled>(context, listen: false);
     void Function()? ifRomLoaded(void Function()? cb) => editor.mapInfo != null ? cb : null;
+    void Function()? ifShortcutEnabled(void Function()? cb) => isShortcutEnabled.value ? cb : null;
 
     return Align(
       alignment: Alignment.centerLeft,
-      child: Consumer<Editor>(
-        builder: (context, editor, child) => MenuBar(
+      child: Consumer2<Editor, IsShortcutEnabled>(
+        builder: (context, editor, isShortcutEnabled, child) => MenuBar(
           menu: Menu(() => [
                 MenuItem.children(
                   title: '&File',
@@ -90,12 +93,12 @@ class MyMenuBar extends StatelessWidget {
                         title: 'Undo' +
                             (editor.commandToUndo == null ? '' : ' ' + editor.commandToUndo!.name),
                         accelerator: cmdOrCtrl + 'z',
-                        action: editor.commandToUndo == null ? null : editor.undo),
+                        action: ifShortcutEnabled(editor.commandToUndo == null ? null : editor.undo)),
                     MenuItem(
                         title: 'Redo' +
                             (editor.commandToRedo == null ? '' : ' ' + editor.commandToRedo!.name),
                         accelerator: cmdOrCtrl + 'y',
-                        action: editor.commandToRedo == null ? null : editor.redo),
+                        action: ifShortcutEnabled(editor.commandToRedo == null ? null : editor.redo)),
                   ],
                 ),
                 MenuItem.children(
@@ -137,7 +140,7 @@ class MyMenuBar extends StatelessWidget {
                       checkStatus:
                           editor.tool.name == 'Pencil' ? CheckStatus.radioOn : CheckStatus.radioOff,
                       accelerator: Accelerator(key: LogicalKeyboardKey.keyP),
-                      action: () => editor.setTool(Pencil()),
+                      action: ifShortcutEnabled(() => editor.setTool(Pencil())),
                     ),
                     MenuItem(
                       title: 'Eyedropper',
@@ -145,7 +148,7 @@ class MyMenuBar extends StatelessWidget {
                           ? CheckStatus.radioOn
                           : CheckStatus.radioOff,
                       accelerator: Accelerator(key: LogicalKeyboardKey.keyI),
-                      action: () => editor.setTool(Eyedropper()),
+                      action: ifShortcutEnabled(() => editor.setTool(Eyedropper())),
                     ),
                   ],
                 ),

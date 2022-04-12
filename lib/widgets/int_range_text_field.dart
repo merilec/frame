@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:frame/widgets/disable_shortcut_text_field.dart';
 
 class IntRangeTextField extends StatelessWidget {
   final TextEditingController? controller;
@@ -23,7 +24,7 @@ class IntRangeTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return DisableShortcutTextField(
       controller: controller,
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,

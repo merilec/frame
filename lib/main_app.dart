@@ -2,7 +2,7 @@ import 'package:frame/notifiers/is_ctrl_pressed.dart';
 import 'package:frame/tabs/tabbed_view_controller.dart';
 import 'package:frame/tabs/tabbed_view_theme.dart';
 import 'package:frame/panels/banks_panel.dart';
-import 'package:frame/menu.dart';
+import 'package:frame/menu/menu.dart';
 import 'package:frame/status_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:nativeshell/nativeshell.dart';
