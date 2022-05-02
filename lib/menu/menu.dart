@@ -5,6 +5,7 @@ import 'package:frame/constants.dart';
 import 'package:frame/notifiers/editor.dart';
 import 'package:frame/notifiers/is_shortcut_enabled.dart';
 import 'package:frame/painters/map_painter.dart';
+import 'package:frame/tools/bucket.dart';
 import 'package:frame/tools/eyedropper.dart';
 import 'package:frame/tools/pencil.dart';
 import 'package:file_picker/file_picker.dart';
@@ -149,6 +150,14 @@ class MyMenuBar extends StatelessWidget {
                           : CheckStatus.radioOff,
                       accelerator: Accelerator(key: LogicalKeyboardKey.keyI),
                       action: ifShortcutEnabled(() => editor.setTool(Eyedropper())),
+                    ),
+                    MenuItem(
+                      title: 'Bucket',
+                      checkStatus: editor.tool.name == 'Bucket'
+                          ? CheckStatus.radioOn
+                          : CheckStatus.radioOff,
+                      accelerator: Accelerator(key: LogicalKeyboardKey.keyB),
+                      action: ifShortcutEnabled(() => editor.setTool(Bucket())),
                     ),
                   ],
                 ),

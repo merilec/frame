@@ -5,6 +5,7 @@ import 'package:frame/models/map_block.dart';
 import 'package:frame/models/position.dart';
 import 'package:frame/notifiers/editor.dart';
 import 'package:frame/panels/map_panel.dart';
+import 'package:frame/tools/bucket.dart';
 import 'package:frame/tools/eyedropper.dart';
 import 'package:frame/tools/tool.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ class Pencil extends Tool {
   int _startingPaintPos = -1;
 
   final Eyedropper _eyedropper = Eyedropper();
+  final Bucket _bucket = Bucket();
 
   @override
   String get name => 'Pencil';
@@ -46,6 +48,8 @@ class Pencil extends Tool {
     if (_newMapBlocks[mapBlockId] != null) return;
 
     var selection = getSelection(editor, panelType);
+    if (selection.mapBlocks.isEmpty) return;
+
     var xy = Position(mapBlockId % mapWidth, mapBlockId ~/ mapWidth);
     var initial = Position(_startingPaintPos % mapWidth, _startingPaintPos ~/ mapWidth);
     var start = Position(
@@ -85,7 +89,7 @@ class Pencil extends Tool {
   @override
   void onPointerDown(PointerEvent details, BuildContext context, MapPanelType panelType) {
     if (isLeftClick(details)) return startPaint(details, context, panelType);
-    if (isMiddleClick(details)) return;
+    if (isMiddleClick(details)) return _bucket.onPointerDown(details, context, panelType);
     if (isRightClick(details)) {
       return _eyedropper.onPointerDown(details, context, panelType);
     }
@@ -94,7 +98,7 @@ class Pencil extends Tool {
   @override
   void onPointerMove(PointerEvent details, BuildContext context, MapPanelType panelType) {
     if (isLeftClick(details)) return doPaint(details, context, panelType);
-    if (isMiddleClick(details)) return;
+    if (isMiddleClick(details)) return _bucket.onPointerMove(details, context, panelType);
     if (isRightClick(details)) {
       return _eyedropper.onPointerMove(details, context, panelType);
     }
