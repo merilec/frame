@@ -9,7 +9,7 @@ import 'package:frame/tools/bucket.dart';
 import 'package:frame/tools/eyedropper.dart';
 import 'package:frame/tools/pencil.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide MenuItem;
 import 'package:flutter/services.dart';
 import 'package:nativeshell/accelerators.dart';
 import 'package:nativeshell/nativeshell.dart';
