@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:frame/notifiers/is_shortcut_enabled.dart';
 import 'package:provider/provider.dart';
 
-class DisableShortcutTextField extends StatelessWidget {
+class DisableShortcutTextField extends StatefulWidget {
   final TextEditingController? controller;
   final List<TextInputFormatter>? inputFormatters;
   final TextInputType? keyboardType;
@@ -24,21 +24,36 @@ class DisableShortcutTextField extends StatelessWidget {
   }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Focus(
-      onFocusChange: (receivedFocus) {
-        var isShortcutEnabled = Provider.of<IsShortcutEnabled>(context, listen: false);
-        isShortcutEnabled.value = !receivedFocus;
-      },
-      child: TextField(
-        controller: controller,
-        inputFormatters: inputFormatters,
-        keyboardType: keyboardType,
-        decoration: decoration,
-        style: style,
-        readOnly: readOnly,
-        onChanged: onChanged,
-      ),
-    );
+  State<DisableShortcutTextField> createState() => _DisableShortcutTextFieldState();
+}
+
+class _DisableShortcutTextFieldState extends State<DisableShortcutTextField> {
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      var isShortcutEnabled = Provider.of<IsShortcutEnabled>(context, listen: false);
+      isShortcutEnabled.value = !_focusNode.hasFocus;
+    });
   }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    focusNode: _focusNode,
+    controller: widget.controller,
+    inputFormatters: widget.inputFormatters,
+    keyboardType: widget.keyboardType,
+    decoration: widget.decoration,
+    style: widget.style,
+    readOnly: widget.readOnly,
+    onChanged: widget.onChanged,
+  );
 }
