@@ -1,6 +1,5 @@
 import 'package:frame/constants.dart';
 import 'package:frame/notifiers/editor.dart';
-import 'package:frame/notifiers/is_ctrl_pressed.dart';
 import 'package:frame/painters/grid_painter.dart';
 import 'package:frame/painters/map_painter.dart';
 import 'package:frame/painters/perms_painter.dart';
@@ -10,7 +9,7 @@ import 'package:frame/widgets/if_rom_loaded_widget.dart';
 import 'package:frame/widgets/persistent_bar_scroll_view.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:nativeshell/src/key_interceptor.dart';
 import 'package:split_view/split_view.dart';
 
 enum MapPanelType {
@@ -20,13 +19,37 @@ enum MapPanelType {
   Others,
 }
 
-class MapPanel extends StatelessWidget {
+class MapPanel extends StatefulWidget {
   final MapPanelType panelType;
 
-  const MapPanel({
+  MapPanel({
     Key? key,
     required this.panelType,
   }) : super(key: key);
+
+  @override
+  State<MapPanel> createState() => _MapPanelState();
+}
+
+class _MapPanelState extends State<MapPanel> {
+  late final KeyInterceptorHandler _keyInterceptorHandler;
+  var _isControlPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _keyInterceptorHandler = (event) {
+      _isControlPressed = event.isControlPressed;
+      return false;
+    };
+    KeyInterceptor.instance.registerHandler(_keyInterceptorHandler, stage: InterceptorStage.pre);
+  }
+
+  @override
+  void dispose() {
+    KeyInterceptor.instance.unregisterHandler(_keyInterceptorHandler, stage: InterceptorStage.pre);
+    super.dispose();
+  }
 
   List<CustomPaint> _constructPaints(Editor editor) {
     var mapInfo = editor.mapInfo!;
@@ -42,7 +65,7 @@ class MapPanel extends StatelessWidget {
           zoom: editor.zoomLevel),
       size: size,
     ));
-    if (panelType == MapPanelType.Permission) {
+    if (widget.panelType == MapPanelType.Permission) {
       paints.add(CustomPaint(
         painter: PermsPainter(
             width: mapInfo.width,
@@ -53,7 +76,7 @@ class MapPanel extends StatelessWidget {
         size: size,
       ));
     }
-    if (panelType == MapPanelType.Events) {
+    if (widget.panelType == MapPanelType.Events) {
       // some kind of events painter
     }
     if (editor.showGrid) {
@@ -90,22 +113,20 @@ class MapPanel extends StatelessWidget {
               ),
               loadedBuilder: (editor) {
                 return PersistentBarScrollView(
-                  child: Consumer<IsCtrlPressed>(builder: (context, ctrl, child) {
-                    return Listener(
-                        onPointerSignal: (PointerSignalEvent event) {
-                          if (event is PointerScrollEvent && ctrl.value) {
-                            event.scrollDelta.dy < 0 ? editor.zoomIn() : editor.zoomOut();
-                          }
-                        },
-                        child: Listener(
-                            onPointerDown: (details) =>
-                                editor.tool.onPointerDown(details, context, panelType),
-                            onPointerMove: (details) =>
-                                editor.tool.onPointerMove(details, context, panelType),
-                            onPointerUp: (details) =>
-                                editor.tool.onPointerUp(details, context, panelType),
-                            child: Stack(children: _constructPaints(editor))));
-                  }),
+                  child: Listener(
+                      onPointerSignal: (PointerSignalEvent event) {
+                        if (event is PointerScrollEvent && _isControlPressed) {
+                          event.scrollDelta.dy < 0 ? editor.zoomIn() : editor.zoomOut();
+                        }
+                      },
+                      child: Listener(
+                          onPointerDown: (details) =>
+                              editor.tool.onPointerDown(details, context, widget.panelType),
+                          onPointerMove: (details) =>
+                              editor.tool.onPointerMove(details, context, widget.panelType),
+                          onPointerUp: (details) =>
+                              editor.tool.onPointerUp(details, context, widget.panelType),
+                          child: Stack(children: _constructPaints(editor)))),
                 );
               },
             ),
@@ -118,6 +139,6 @@ class MapPanel extends StatelessWidget {
                 default:
                   return const SizedBox();
               }
-            }(panelType),
+            }(widget.panelType),
           ]);
 }

@@ -1,7 +1,6 @@
 import 'package:frame/constants.dart';
 import 'package:frame/main_app.dart';
 import 'package:frame/notifiers/editor.dart';
-import 'package:frame/notifiers/is_ctrl_pressed.dart';
 import 'package:frame/notifiers/is_shortcut_enabled.dart';
 import 'package:frame/notifiers/status.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +14,6 @@ void main() async {
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider<Editor>(create: (context) => Editor()),
-      ChangeNotifierProvider<IsCtrlPressed>(create: (context) => IsCtrlPressed(false)),
       ChangeNotifierProvider<IsShortcutEnabled>(create: (context) => IsShortcutEnabled(true)),
       ChangeNotifierProvider<Status>(create: (context) => Status('')),
     ],
